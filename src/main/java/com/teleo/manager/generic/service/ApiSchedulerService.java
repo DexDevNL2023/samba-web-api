@@ -37,17 +37,17 @@ public class ApiSchedulerService {
     @LogExecution
     @Scheduled(fixedRate = 30000)
     public void checkForProfileAndReminderNotifications() {
-//        // Vérifier les modifications de profil
-//        checkProfileUpdates();
-//
-//        // Vérifier les souscriptions proches de l'expiration
-//        checkSouscriptionsExpiringSoonReminders();
-//
-//        // Vérifier les souscriptions dont le status est 'WAITING'
-//        checkSouscriptionsStatusIsWaitingReminders();
-//
-//        // Appeler la méthode de traitement du paiement
-//        traiterPaiement();
+        // Vérifier les modifications de profil
+        checkProfileUpdates();
+
+        // Vérifier les souscriptions proches de l'expiration
+        checkSouscriptionsExpiringSoonReminders();
+
+        // Vérifier les souscriptions dont le status est 'WAITING'
+        checkSouscriptionsStatusIsWaitingReminders();
+
+        // Appeler la méthode de traitement du paiement
+        traiterPaiement();
     }
 
     private void traiterPaiement() {
