@@ -1,0 +1,7 @@
+{
+  "name": "Samba api",
+  "description": "Api de gestion des micro-assurances",
+  "repository": "https://github.com/DexDevNL2023/samba-web-api",
+  "image": "heroku/java",
+  "addons": [ "heroku-postgresql" ]
+}

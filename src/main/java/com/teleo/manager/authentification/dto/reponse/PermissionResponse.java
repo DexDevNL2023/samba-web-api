@@ -1,0 +1,20 @@
+package com.teleo.manager.authentification.dto.reponse;
+
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.teleo.manager.generic.dto.reponse.BaseResponse;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+@JsonIgnoreProperties(ignoreUnknown = true)
+public class PermissionResponse extends BaseResponse {
+    private String permissionKey;
+    private String libelle;
+    //private List<Long> roles = new ArrayList<>();
+}

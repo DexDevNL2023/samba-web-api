@@ -1,0 +1,66 @@
+# Développement API-first avec OpenAPI
+# Ce fichier sera utilisé au moment de la compilation pour générer des stubs de point de terminaison Spring-MVC à l'aide d'openapi-generator
+openapi: '3.0.1'
+info:
+  title: ${spring.application.name}
+  version: 0.0.1
+servers:
+  - url: http://localhost:8081/api
+    description: Development server
+  - url: https://localhost:8081/api
+    description: Serveur de développement avec profil TLS
+paths: { }
+components:
+  responses:
+    Problem:
+      description: une erreur s'est produite - voir le code d'état et l'objet problématique pour plus d'informations.
+      content:
+        application/problem+json:
+          schema:
+            type: object
+            properties:
+              type:
+                type: string
+                format: uri
+                description: |
+                  Un URI absolu qui identifie le type de problème. Une fois déréférencé,
+                  il DEVRAIT fournir une documentation lisible par l'homme pour le type de problème
+                  (par exemple, en utilisant HTML).
+                default: 'about:blank'
+              title:
+                type: string
+                description: |
+                  Un bref résumé du type de problème. Écrit en anglais et lisible
+                  pour les ingénieurs (généralement ne convient pas aux parties prenantes non techniques et
+                  non localisé); exemple : Service indisponible
+              status:
+                type: integer
+                format: int32
+                description: |
+                  Le code d'état HTTP généré par le serveur d'origine pour cette occurrence
+                  du problème.
+                minimum: 100
+                maximum: 600
+                exclusiveMaximum: true
+                example: 503
+              detail:
+                type: string
+                description: |
+                  Une explication lisible par l'homme spécifique à cette occurrence du
+                  problème.
+                example: La connexion à la base de données a expiré
+              instance:
+                type: string
+                format: uri
+                description: |
+                  Un URI absolu qui identifie l’occurrence spécifique du problème.
+                  Il peut ou non fournir des informations supplémentaires s'il est déréférencé.
+
+  securitySchemes:
+    jwt:
+      type: http
+      description: JWT Authentication
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - jwt: [ ]
