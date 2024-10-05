@@ -68,11 +68,6 @@ public class FileStorageService {
 
             // Retourner le chemin relatif accessible depuis Angular
             return GenericUtils.getServerAbsoluteUrl() + "/api/files/" + file.getOriginalFilename(); // Chemin relatif depuis la racine de l'API
-
-            // Retourner le chemin relatif accessible depuis Angular
-            //String relativePath = uploadDir + file.getOriginalFilename(); // Chemin relatif depuis la racine du serveur
-            //return GenericUtils.getServerAbsoluteUrl() + relativePath;
-            //return GenericUtils.getServerAbsoluteUrl() + "/" + relativePath; // Construire l'URL complète pour l'accès via l'API
         } catch (IOException e) {
             throw new RuntimeException("Erreur lors de l'enregistrement du fichier : " + e.getMessage());
         }
