@@ -90,9 +90,7 @@ public class GenericUtils {
         StringBuilder urlBuilder = new StringBuilder(scheme + "://" + serveurName);
 
         // Ajouter le port selon les règles définies
-        if ("prod".equalsIgnoreCase(activeProfile) && serverPort != 9000) {
-            urlBuilder.append(":").append(serverPort);
-        } else if (!"prod".equalsIgnoreCase(activeProfile) && serverPort > 0) {
+        if (serverPort > 0) {
             urlBuilder.append(":").append(serverPort);
         }
 
