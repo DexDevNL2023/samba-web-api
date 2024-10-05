@@ -78,7 +78,7 @@ public class GenericUtils {
 
         // Si l'adresse du serveur est nulle ou vide, renvoyer l'URL par défaut
         if (serverAddress == null || serverAddress.isEmpty()) {
-            return "https://samba-web-api-c853a739dee0.herokuapp.com/";
+            return "https://samba-web-api-c03043e876fa.herokuapp.com";
         }
 
         // Construire l'URL
