@@ -1,6 +1,7 @@
 package com.teleo.manager.generic.service;
 
 import com.teleo.manager.generic.utils.GenericUtils;
+import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
@@ -10,6 +11,7 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+
 @Slf4j
 @Service
 public class FileStorageService {
@@ -17,6 +19,30 @@ public class FileStorageService {
     @Value("${file.upload-dir}")
     private String uploadDir;
 
+    /**
+     * Méthode exécutée au démarrage pour créer les dossiers si nécessaires
+     */
+    @PostConstruct
+    public void init() {
+        File directory = new File(uploadDir);
+        if (!directory.exists()) {
+            boolean created = directory.mkdirs();
+            if (created) {
+                log.info("Le dossier de téléchargement a été créé : {}", uploadDir);
+            } else {
+                log.warn("Le dossier de téléchargement n'a pas pu être créé : {}", uploadDir);
+            }
+        } else {
+            log.info("Le dossier de téléchargement existe déjà : {}", uploadDir);
+        }
+    }
+
+    /**
+     * Stocker un fichier dans le répertoire défini
+     *
+     * @param file fichier à stocker
+     * @return chemin relatif pour accéder au fichier
+     */
     public String storeFile(MultipartFile file) {
         log.info("Storage");
         // Vérifier si le fichier est vide
@@ -52,6 +78,11 @@ public class FileStorageService {
         }
     }
 
+    /**
+     * Récupérer un fichier en fonction de son nom
+     * @param fileName nom du fichier
+     * @return chemin du fichier
+     */
     public Path getFile(String fileName) {
         return Paths.get(uploadDir, fileName);
     }
