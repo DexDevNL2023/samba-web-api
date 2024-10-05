@@ -83,7 +83,7 @@ public class GenericUtils {
         if (serveurName == null || serveurName.isEmpty() ||
                 ("prod".equalsIgnoreCase(activeProfile) && serveurName.equalsIgnoreCase("localhost"))) {
             // URL par défaut en production
-            serveurName = "samba-web-api-c03043e876fa.herokuapp.com";
+            serveurName = "samba-web-api-c9e839abd962.herokuapp.com";
         }
 
         // Construire l'URL de base
