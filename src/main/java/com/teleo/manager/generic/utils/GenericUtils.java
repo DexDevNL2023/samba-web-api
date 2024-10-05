@@ -1,35 +1,21 @@
 package com.teleo.manager.generic.utils;
 
+import com.teleo.manager.authentification.entities.DefaultRole;
+import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
-import jakarta.servlet.http.HttpServletRequest;
-
-import com.teleo.manager.authentification.entities.DefaultRole;
-import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
-import org.modelmapper.internal.bytebuddy.utility.RandomString;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
-import java.util.regex.Pattern;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.Random;
 
 
 @Component
@@ -84,11 +70,26 @@ public class GenericUtils {
     }
 
     public static String getServerAbsoluteUrl() {
-        String scheme = "http"; // Valeur par défaut pour développement
+        // Valeur par défaut pour développement
+        String scheme = "http";
         if ("prod".equalsIgnoreCase(activeProfile)) {
             scheme = "https";
         }
-        return scheme + "://" + serverAddress + ":" + serverPort;
+
+        // Si l'adresse du serveur est nulle ou vide, renvoyer l'URL par défaut
+        if (serverAddress == null || serverAddress.isEmpty()) {
+            return "https://samba-web-api-c853a739dee0.herokuapp.com/";
+        }
+
+        // Construire l'URL
+        StringBuilder urlBuilder = new StringBuilder(scheme + "://" + serverAddress);
+
+        // Ajouter le port seulement s'il est différent de 0
+        if (serverPort > 0) {
+            urlBuilder.append(":").append(serverPort);
+        }
+
+        return urlBuilder.toString();
     }
 
     public static int calculAge(Date dateNaissance) {
