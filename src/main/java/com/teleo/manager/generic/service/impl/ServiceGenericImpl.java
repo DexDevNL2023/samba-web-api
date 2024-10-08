@@ -1,6 +1,5 @@
 package com.teleo.manager.generic.service.impl;
 
-import jakarta.transaction.Transactional;
 import com.teleo.manager.generic.dto.reponse.BaseResponse;
 import com.teleo.manager.generic.dto.reponse.PagedResponse;
 import com.teleo.manager.generic.dto.request.BaseRequest;
@@ -12,6 +11,7 @@ import com.teleo.manager.generic.repository.GenericRepository;
 import com.teleo.manager.generic.service.ServiceGeneric;
 import com.teleo.manager.generic.utils.AppConstants;
 import com.teleo.manager.generic.utils.GenericUtils;
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -80,14 +80,14 @@ public abstract class ServiceGenericImpl<D extends BaseRequest, R extends BaseRe
     @Transactional
     @LogExecution
     public List<R> getAll() {
-        return repository.findAll().stream().filter(e -> !e.getIsDeleted()).map(mapper::toDto).collect(Collectors.toList());
+        return repository.findAll().stream().filter(e -> !e.getIsDeleted()).map(this::getOne).collect(Collectors.toList());
     }
 
     @Override
     @Transactional
     @LogExecution
     public List<R> getAllByIds(List<Long> ids) {
-        return repository.findAllById(ids).stream().filter(e -> !e.getIsDeleted()).map(mapper::toDto).collect(Collectors.toList());
+        return repository.findAllById(ids).stream().filter(e -> !e.getIsDeleted()).map(this::getOne).collect(Collectors.toList());
     }
 
     @Override
@@ -112,7 +112,9 @@ public abstract class ServiceGenericImpl<D extends BaseRequest, R extends BaseRe
         if (list.getNumberOfElements() == 0)
             throw new RessourceNotFoundException("La recherche de " + this.entityClass.getSimpleName() + " est vide!");
         // Mapper Dto
-        List<R> listDto = mapper.toDto(list.getContent());
+        List<R> listDto = list.getContent().stream()
+                .map(this::getOne)
+                .collect(Collectors.toList());
         return new PagedResponse<R>(listDto, list.getNumber(), list.getSize(), list.getTotalElements(), list.getTotalPages(), list.isLast());
     }
 

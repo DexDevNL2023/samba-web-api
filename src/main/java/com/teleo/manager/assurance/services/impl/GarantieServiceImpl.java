@@ -10,6 +10,7 @@ import com.teleo.manager.assurance.mapper.GarantieMapper;
 import com.teleo.manager.assurance.repositories.GarantieRepository;
 import com.teleo.manager.assurance.repositories.SouscriptionRepository;
 import com.teleo.manager.assurance.services.GarantieService;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import com.teleo.manager.generic.logging.LogExecution;
 import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
@@ -21,6 +22,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -88,5 +90,16 @@ public class GarantieServiceImpl extends ServiceGenericImpl<GarantieRequest, Gar
         Garantie garantie = getById(garantieId);
         BigDecimal percentage = BigDecimal.valueOf(garantie.getPercentage());
         return percentage.multiply(montantSinistre).divide(BigDecimal.valueOf(100), RoundingMode.HALF_UP);
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public GarantieResponse getOne(Garantie entity) {
+        GarantieResponse dto = mapper.toDto(entity);
+        dto.setPolices(entity.getPolices().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        return dto;
     }
 }

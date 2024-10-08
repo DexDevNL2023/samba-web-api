@@ -15,4 +15,8 @@ public interface SinistreController extends ControllerGeneric<SinistreRequest, S
     ResponseEntity<RessourceResponse<List<SinistreResponse>>> getAllBySouscriptionId(@NotNull @PathVariable("souscriptionId") Long souscriptionId);
     ResponseEntity<RessourceResponse<SinistreResponse>> getWithPrestationsById(@NotNull @PathVariable("prestationId") Long prestationId);
     ResponseEntity<RessourceResponse<SinistreResponse>> getWithDocumentsById(@NotNull @PathVariable("documentId") Long documentId);
+
+    ResponseEntity<RessourceResponse<List<SinistreResponse>>> getAllByUserId(@NotNull @PathVariable("userId") Long userId);
+
+    ResponseEntity<RessourceResponse<List<SinistreResponse>>> getAllByAssureId(@NotNull @PathVariable("assureId") Long assureId);
 }

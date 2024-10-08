@@ -17,7 +17,6 @@ import com.teleo.manager.authentification.services.AccountService;
 import com.teleo.manager.authentification.services.PermissionService;
 import com.teleo.manager.generic.utils.AppConstants;
 import com.teleo.manager.generic.utils.GenericUtils;
-
 import com.teleo.manager.parametre.entities.Company;
 import com.teleo.manager.parametre.services.CompanyService;
 import org.springframework.context.ApplicationListener;
@@ -26,14 +25,12 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
-
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-
-import java.io.InputStream;
 
 @Component
 public class SetupDataLoader implements ApplicationListener<ContextRefreshedEvent> {
@@ -255,54 +252,43 @@ public class SetupDataLoader implements ApplicationListener<ContextRefreshedEven
 
     // Méthode pour obtenir le libellé d'une assurance
     private String getAssuranceLabel(InsuranceType insuranceType) {
-        switch (insuranceType) {
-            case PERSONNE:
-                return "Protection individuelle";
-            case BIEN:
-                return "Sécurité des biens de valeur";
-            case AGRICOLE:
-                return "Protection des récoltes et du bétail";
-            case AUTOMOBILE:
-                return "Assurance Véhicule Essentiel";
-            case HABITATION:
-                return "Protection du logement";
-            case VIE:
-                return "Plan d'épargne pour l'avenir";
-            case ACCIDENT:
-                return "Assistance en cas d'accident";
-            case VOYAGE:
-                return "Couverture de déplacement";
-            case SANTE:
-                return "Couverture Santé de Base";
-            default:
-                return "Assurance";
-        }
+        return switch (insuranceType) {
+            case PERSONNE -> "Protection individuelle";
+            case BIEN -> "Sécurité des biens de valeur";
+            case AGRICOLE -> "Protection des récoltes et du bétail";
+            case AUTOMOBILE -> "Assurance Véhicule Essentiel";
+            case HABITATION -> "Protection du logement";
+            case VIE -> "Plan d'épargne pour l'avenir";
+            case ACCIDENT -> "Assistance en cas d'accident";
+            case VOYAGE -> "Couverture de déplacement";
+            case SANTE -> "Couverture Santé de Base";
+            default -> "Assurance";
+        };
     }
 
     // Méthode pour obtenir la description d'une assurance
     private String getAssuranceDescription(InsuranceType insuranceType) {
-        switch (insuranceType) {
-            case PERSONNE:
-                return "Offre de protection pour l'intégrité physique de l'assuré, couvrant des événements tels que l'invalidité temporaire, la perte de revenu due à une maladie ou un accident mineur.";
-            case BIEN:
-                return "Couverture pour les pertes ou dommages causés aux biens personnels ou professionnels de petite valeur, comme les équipements agricoles, les outils de travail ou les marchandises stockées.";
-            case AGRICOLE:
-                return "Protection pour les petits exploitants agricoles contre les risques climatiques, la perte de bétail ou les incidents naturels pouvant affecter les cultures.";
-            case AUTOMOBILE:
-                return "Couverture de base pour les véhicules personnels ou utilitaires légers, incluant la responsabilité civile et les dommages causés à des tiers.";
-            case HABITATION:
-                return "Assurance pour les habitations simples, couvrant les risques de vol, d'incendie ou de dégâts des eaux pour les petites propriétés résidentielles.";
-            case VIE:
-                return "Assurance vie à faible coût offrant une épargne à long terme pour les imprévus, avec des prestations pour la famille en cas de décès prématuré de l'assuré.";
-            case ACCIDENT:
-                return "Assistance financière en cas d'accident de travail ou de la vie courante, couvrant les frais médicaux, les blessures ou les incapacités temporaires.";
-            case VOYAGE:
-                return "Protection pour les déplacements de courte durée, incluant les frais de rapatriement, les pertes de bagages ou les incidents durant le voyage.";
-            case SANTE:
-                return "Accès à des soins de santé primaires, consultations médicales et médicaments essentiels pour les familles à revenus modestes, avec des prestations en cas d'hospitalisation.";
-            default:
-                return "Description de l'assurance";
-        }
+        return switch (insuranceType) {
+            case PERSONNE ->
+                    "Offre de protection pour l'intégrité physique de l'assuré, couvrant des événements tels que l'invalidité temporaire, la perte de revenu due à une maladie ou un accident mineur.";
+            case BIEN ->
+                    "Couverture pour les pertes ou dommages causés aux biens personnels ou professionnels de petite valeur, comme les équipements agricoles, les outils de travail ou les marchandises stockées.";
+            case AGRICOLE ->
+                    "Protection pour les petits exploitants agricoles contre les risques climatiques, la perte de bétail ou les incidents naturels pouvant affecter les cultures.";
+            case AUTOMOBILE ->
+                    "Couverture de base pour les véhicules personnels ou utilitaires légers, incluant la responsabilité civile et les dommages causés à des tiers.";
+            case HABITATION ->
+                    "Assurance pour les habitations simples, couvrant les risques de vol, d'incendie ou de dégâts des eaux pour les petites propriétés résidentielles.";
+            case VIE ->
+                    "Assurance vie à faible coût offrant une épargne à long terme pour les imprévus, avec des prestations pour la famille en cas de décès prématuré de l'assuré.";
+            case ACCIDENT ->
+                    "Assistance financière en cas d'accident de travail ou de la vie courante, couvrant les frais médicaux, les blessures ou les incapacités temporaires.";
+            case VOYAGE ->
+                    "Protection pour les déplacements de courte durée, incluant les frais de rapatriement, les pertes de bagages ou les incidents durant le voyage.";
+            case SANTE ->
+                    "Accès à des soins de santé primaires, consultations médicales et médicaments essentiels pour les familles à revenus modestes, avec des prestations en cas d'hospitalisation.";
+            default -> "Description de l'assurance";
+        };
     }
 
     private void addSambABoxPolicy() {

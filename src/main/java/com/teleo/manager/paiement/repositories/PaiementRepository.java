@@ -5,6 +5,8 @@ import com.teleo.manager.generic.repository.GenericRepository;
 import com.teleo.manager.paiement.dto.request.PaiementRequest;
 import com.teleo.manager.paiement.entities.Paiement;
 import com.teleo.manager.paiement.enums.PaymentType;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -49,4 +51,10 @@ public interface PaiementRepository extends GenericRepository<PaiementRequest, P
 
     @Query("SELECT DISTINCT p FROM Paiement p WHERE p.reclamation.id = :reclamationId AND p.datePaiement BETWEEN :startDate AND :endDate AND p.type IN ('REMBOURSEMENT', 'PRESTATION')")
     List<Paiement> findAllByReclamationAndBetween(@Param("reclamationId") Long reclamationId, @Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT DISTINCT p FROM Paiement p WHERE p.souscription.id = :souscriptionId AND p.type = 'PRIME' ORDER BY p.datePaiement DESC")
+    Page<Paiement> findLastPrimePaiementBySouscriptionId(@Param("souscriptionId") Long souscriptionId, Pageable pageable);
+
+    @Query("SELECT DISTINCT p FROM Paiement p WHERE p.souscription.id = :souscriptionId AND p.type IN ('REMBOURSEMENT', 'PRESTATION') ORDER BY p.datePaiement DESC")
+    Page<Paiement> findLastOtherPaiementBySouscriptionId(@Param("souscriptionId") Long souscriptionId, Pageable pageable);
 }

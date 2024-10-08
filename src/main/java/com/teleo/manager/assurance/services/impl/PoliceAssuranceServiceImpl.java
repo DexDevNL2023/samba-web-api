@@ -6,6 +6,7 @@ import com.teleo.manager.assurance.entities.PoliceAssurance;
 import com.teleo.manager.assurance.mapper.PoliceAssuranceMapper;
 import com.teleo.manager.assurance.repositories.PoliceAssuranceRepository;
 import com.teleo.manager.assurance.services.PoliceAssuranceService;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.exceptions.InternalException;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import com.teleo.manager.generic.logging.LogExecution;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -122,5 +124,16 @@ public class PoliceAssuranceServiceImpl extends ServiceGenericImpl<PoliceAssuran
         PoliceAssurance policeAssurance = repository.findWithSouscriptionById(souscriptionId)
                 .orElseThrow(() -> new RessourceNotFoundException("Police d'assurance avec l'ID souscription " + souscriptionId + " introuvable"));
         return mapper.toDto(policeAssurance);
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public PoliceAssuranceResponse getOne(PoliceAssurance entity) {
+        PoliceAssuranceResponse dto = mapper.toDto(entity);
+        dto.setSouscriptions(entity.getSouscriptions().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        return dto;
     }
 }

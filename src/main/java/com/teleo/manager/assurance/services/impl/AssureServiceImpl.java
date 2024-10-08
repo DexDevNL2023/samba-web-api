@@ -8,6 +8,7 @@ import com.teleo.manager.assurance.repositories.AssureRepository;
 import com.teleo.manager.assurance.services.AssureService;
 import com.teleo.manager.authentification.entities.Account;
 import com.teleo.manager.authentification.repositories.AccountRepository;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.exceptions.InternalException;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import com.teleo.manager.generic.logging.LogExecution;
@@ -15,7 +16,7 @@ import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -109,6 +110,20 @@ public class AssureServiceImpl extends ServiceGenericImpl<AssureRequest, AssureR
         Assure assure = repository.findAssureBySouscriptionId(souscriptionId)
                 .orElseThrow(() -> new RessourceNotFoundException("Assuré avec l'ID souscription : " + souscriptionId + " introuvable"));
         return mapper.toDto(assure);
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public AssureResponse getOne(Assure entity) {
+        AssureResponse dto = mapper.toDto(entity);
+        dto.setDossiers(entity.getDossiers().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        dto.setSouscriptions(entity.getSouscriptions().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        return dto;
     }
 }
 

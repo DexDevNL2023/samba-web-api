@@ -1,28 +1,41 @@
 package com.teleo.manager.sinistre.services.impl;
 
+import com.teleo.manager.assurance.entities.Assure;
 import com.teleo.manager.assurance.entities.Garantie;
 import com.teleo.manager.assurance.entities.Souscription;
+import com.teleo.manager.assurance.repositories.AssureRepository;
+import com.teleo.manager.assurance.repositories.SouscriptionRepository;
+import com.teleo.manager.document.entities.Document;
+import com.teleo.manager.document.repositories.DocumentRepository;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
+import com.teleo.manager.generic.exceptions.InternalException;
+import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
+import com.teleo.manager.generic.logging.LogExecution;
+import com.teleo.manager.generic.service.ImageService;
+import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
+import com.teleo.manager.generic.utils.GenericUtils;
+import com.teleo.manager.notification.enums.TypeNotification;
 import com.teleo.manager.notification.services.NotificationService;
 import com.teleo.manager.sinistre.dto.reponse.SinistreResponse;
+import com.teleo.manager.sinistre.dto.request.PublicSinistreRequest;
 import com.teleo.manager.sinistre.dto.request.SinistreRequest;
 import com.teleo.manager.sinistre.entities.Sinistre;
 import com.teleo.manager.sinistre.enums.SinistreStatus;
 import com.teleo.manager.sinistre.mapper.SinistreMapper;
 import com.teleo.manager.sinistre.repositories.SinistreRepository;
 import com.teleo.manager.sinistre.services.SinistreService;
-import com.teleo.manager.generic.exceptions.InternalException;
-import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
-import com.teleo.manager.generic.logging.LogExecution;
-import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
-import com.teleo.manager.notification.enums.TypeNotification;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.rest.webmvc.ResourceNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class SinistreServiceImpl extends ServiceGenericImpl<SinistreRequest, SinistreResponse, Sinistre> implements SinistreService {
@@ -30,12 +43,20 @@ public class SinistreServiceImpl extends ServiceGenericImpl<SinistreRequest, Sin
     private final SinistreRepository repository;
     private final SinistreMapper mapper;
     private final NotificationService notificationService;
+    private final AssureRepository assureRepository;
+    private final SouscriptionRepository souscriptionRepository;
+    private final DocumentRepository documentRepository;
+    private final ImageService imageService;
 
-    public SinistreServiceImpl(SinistreRepository repository, SinistreMapper mapper, NotificationService notificationService) {
+    public SinistreServiceImpl(SinistreRepository repository, SinistreMapper mapper, NotificationService notificationService, AssureRepository assureRepository, SouscriptionRepository souscriptionRepository, DocumentRepository documentRepository, ImageService imageService) {
         super(Sinistre.class, repository, mapper);
         this.repository = repository;
         this.mapper = mapper;
         this.notificationService = notificationService;
+        this.assureRepository = assureRepository;
+        this.souscriptionRepository = souscriptionRepository;
+        this.documentRepository = documentRepository;
+        this.imageService = imageService;
     }
 
     @Transactional
@@ -48,6 +69,8 @@ public class SinistreServiceImpl extends ServiceGenericImpl<SinistreRequest, Sin
 
             // Contrôle du statut avant de sauvegarder et d'envoyer la notification
             if (sinistre.getStatus() != SinistreStatus.CLOTURE) {
+                sinistre = repository.save(sinistre);
+
                 // Générer les détails du reçu en fonction du type de sinistre
                 String details = buildDetailsFromSinistre(sinistre);
                 // Générer la notification de création de sinistre
@@ -60,7 +83,6 @@ public class SinistreServiceImpl extends ServiceGenericImpl<SinistreRequest, Sin
                 throw new RessourceNotFoundException("Le sinistre ne peut pas être créé avec un statut de 'Clôturé'.");
             }
 
-            sinistre = repository.save(sinistre);
             return getOne(sinistre);
         } catch (Exception e) {
             throw new InternalException(e.getMessage());
@@ -95,6 +117,8 @@ public class SinistreServiceImpl extends ServiceGenericImpl<SinistreRequest, Sin
 
             // Contrôle du statut avant d'envoyer une notification
             if (sinistre.getStatus() != SinistreStatus.CLOTURE) {
+                sinistre = repository.save(sinistre);
+
                 // Générer les détails du sinistre mis à jour
                 String details = buildDetailsFromSinistre(sinistre);
                 // Générer la notification de mise à jour de sinistre
@@ -107,7 +131,6 @@ public class SinistreServiceImpl extends ServiceGenericImpl<SinistreRequest, Sin
                 throw new RessourceNotFoundException("Le sinistre ne peut pas être mis à jour avec un statut de 'Clôturé'.");
             }
 
-            sinistre = repository.save(sinistre);
             return getOne(sinistre);
         } catch (Exception e) {
             throw new InternalException(e.getMessage());
@@ -208,5 +231,167 @@ public class SinistreServiceImpl extends ServiceGenericImpl<SinistreRequest, Sin
         Sinistre sinistre = repository.findByIdWithDocuments(documentId)
                 .orElseThrow(() -> new RessourceNotFoundException("Sinistre avec l'ID document " + documentId + " introuvable"));
         return mapper.toDto(sinistre);
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public List<SinistreResponse> findByUserId(Long userId) {
+        Assure assure = assureRepository.findAssureByAccountId(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("Assuré avec l'ID du compte " + userId + " introuvable"));
+        return mapper.toDto(repository.findAllByAssureId(assure.getId()));
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public List<SinistreResponse> findByAssureId(Long assureId) {
+        return mapper.toDto(repository.findAllByAssureId(assureId));
+    }
+/*
+    @Transactional
+    @LogExecution
+    @Override
+    public SinistreResponse makeDeclarationSinistre(PublicSinistreRequest dto) {
+        Souscription souscription = souscriptionRepository.findById(dto.getSouscription())
+                .orElseThrow(() -> new RessourceNotFoundException("Souscription avec l'ID " + dto.getSouscription() + " introuvable"));
+
+        Sinistre sinistre = new Sinistre();
+        // Générer un numéro unique pour du sinistre
+        sinistre.setNumeroSinistre(GenericUtils.GenerateNumero("SINIS"));
+        sinistre.setStatus(SinistreStatus.EN_COURS);
+        sinistre.setLabel(dto.getLabel());
+        sinistre.setRaison(dto.getRaison());
+        sinistre.setDateSurvenance(dto.getDateSurvenance());
+        sinistre.setMontantSinistre(dto.getMontantSinistre());
+        sinistre.setSouscription(souscription);
+
+        // Contrôle du statut avant de sauvegarder et d'envoyer la notification
+        if (sinistre.getStatus() != SinistreStatus.CLOTURE) {
+            sinistre = repository.save(sinistre);
+
+            // pour chaque file ajouter un document
+            if (dto.getDocuments() != null && !dto.getDocuments().isEmpty()) {
+                Sinistre finalSinistre = sinistre;
+                dto.getDocuments().forEach(docRequest -> {
+                    Document document = new Document();
+                    document.setNumeroDocument(GenericUtils.GenerateNumero("DOC"));
+                    document.setSinistre(finalSinistre);
+
+                    // Decode Base64 and save the file
+                    String fileUrl = imageService.saveBase64File(docRequest.getUrl());
+
+                    // On construit l'url absolue du fichier
+                    document.setUrl(fileUrl);
+
+                    // Optionnel: Si vous avez d'autres attributs à remplir dans le document
+                    document.setNom(docRequest.getNom());
+                    document.setUrl(docRequest.getUrl());
+
+                    // Sauvegarder le document dans le repository
+                    documentRepository.save(document);
+                });
+            }
+
+            // Générer les détails du reçu en fonction du type de sinistre
+            String details = buildDetailsFromSinistre(sinistre);
+            // Générer la notification de création de sinistre
+            notificationService.generateNotification(null,
+                    sinistre.getSouscription().getAssure().getAccount(),
+                    "Nouveau Sinistre",
+                    details,
+                    TypeNotification.CLAIM);
+        } else {
+            throw new RessourceNotFoundException("Le sinistre ne peut pas être créé avec un statut de 'Clôturé'.");
+        }
+
+        return getOne(sinistre);
+    }*/
+
+    @Transactional
+    @LogExecution
+    @Override
+    public SinistreResponse makeDeclarationSinistre(PublicSinistreRequest dto) {
+        log.info("Démarrage de la méthode makeDeclarationSinistre avec le DTO : {}", dto);
+
+        // Recherche de la souscription par ID
+        Souscription souscription = souscriptionRepository.findById(dto.getSouscription())
+                .orElseThrow(() -> new RessourceNotFoundException(
+                        "Souscription avec l'ID " + dto.getSouscription() + " introuvable"));
+        log.info("Souscription récupérée : {}", souscription);
+
+        // Construction de l'objet Sinistre
+        Sinistre sinistre = new Sinistre();
+        sinistre.setNumeroSinistre(GenericUtils.GenerateNumero("SIN"));
+        sinistre.setStatus(SinistreStatus.EN_COURS);
+        sinistre.setLabel(dto.getLabel());
+        sinistre.setRaison(dto.getRaison());
+        sinistre.setDateDeclaration(LocalDate.now());
+        sinistre.setDateSurvenance(dto.getDateSurvenance());
+        sinistre.setMontantSinistre(dto.getMontantSinistre());
+        sinistre.setSouscription(souscription);
+        log.info("Sinistre préparé avec les informations : {}", sinistre);
+
+        // Contrôle du statut avant de sauvegarder et d'envoyer la notification
+        if (sinistre.getStatus() != SinistreStatus.CLOTURE) {
+            sinistre = repository.save(sinistre);
+            log.info("Sinistre sauvegardé avec l'ID : {}", sinistre.getId());
+
+            // Ajout des documents si présents
+            if (dto.getDocuments() != null && !dto.getDocuments().isEmpty()) {
+                Sinistre finalSinistre = sinistre;
+                dto.getDocuments().forEach(docRequest -> {
+                    Document document = new Document();
+                    document.setNumeroDocument(GenericUtils.GenerateNumero("DOC"));
+                    document.setSinistre(finalSinistre);
+
+                    // Decode Base64 and save the file
+                    String fileUrl = imageService.saveBase64File(docRequest.getUrl());
+                    document.setUrl(fileUrl);
+                    document.setNom(docRequest.getNom());
+                    log.info("Document préparé avec les informations : {}", document);
+
+                    // Sauvegarder le document dans le repository
+                    documentRepository.save(document);
+                    log.info("Document sauvegardé avec l'ID : {}", document.getId());
+                });
+            }
+
+            // Générer les détails du reçu en fonction du type de sinistre
+            String details = buildDetailsFromSinistre(sinistre);
+            log.info("Détails générés pour le sinistre : {}", details);
+
+            // Générer la notification de création de sinistre
+            notificationService.generateNotification(
+                    null,
+                    sinistre.getSouscription().getAssure().getAccount(),
+                    "Nouveau Sinistre",
+                    details,
+                    TypeNotification.CLAIM
+            );
+            log.info("Notification de sinistre envoyée pour le compte : {}", sinistre.getSouscription().getAssure().getAccount());
+        } else {
+            log.error("Le sinistre ne peut pas être créé avec un statut de 'Clôturé'.");
+            throw new RessourceNotFoundException("Le sinistre ne peut pas être créé avec un statut de 'Clôturé'.");
+        }
+
+        SinistreResponse response = getOne(sinistre);
+        log.info("Réponse de sinistre retournée : {}", response);
+
+        return response;
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public SinistreResponse getOne(Sinistre entity) {
+        SinistreResponse dto = mapper.toDto(entity);
+        dto.setPrestations(entity.getPrestations().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        dto.setDocuments(entity.getDocuments().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        return dto;
     }
 }

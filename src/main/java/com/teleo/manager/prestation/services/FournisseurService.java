@@ -12,4 +12,6 @@ public interface FournisseurService extends ServiceGeneric<FournisseurRequest, F
     List<FournisseurResponse> findFournisseurWithBranchesById(Long branchId);
     FournisseurResponse findFournisseurWithPrestationsById(Long prestationId);
     FournisseurResponse findFournisseurWithRegistrantsById(Long branchId);
+
+    FournisseurResponse findFournisseurByUserId(Long userId);
 }

@@ -1,6 +1,6 @@
 package com.teleo.manager.prestation.services.impl;
 
-import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.logging.LogExecution;
 import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
 import com.teleo.manager.prestation.dto.reponse.FinanceurResponse;
@@ -13,6 +13,7 @@ import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -32,5 +33,16 @@ public class FinanceurServiceImpl extends ServiceGenericImpl<FinanceurRequest, F
     @Override
     public List<FinanceurResponse> findFinanceurWithPrestationsById(Long prestationId) {
         return mapper.toDto(repository.findFinanceurWithPrestationsById(prestationId));
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public FinanceurResponse getOne(Financeur entity) {
+        FinanceurResponse dto = mapper.toDto(entity);
+        dto.setPrestations(entity.getPrestations().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        return dto;
     }
 }

@@ -1,8 +1,8 @@
 package com.teleo.manager.prestation.repositories;
 
 import com.teleo.manager.generic.repository.GenericRepository;
-import com.teleo.manager.prestation.entities.Fournisseur;
 import com.teleo.manager.prestation.dto.request.FournisseurRequest;
+import com.teleo.manager.prestation.entities.Fournisseur;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -25,4 +25,8 @@ public interface FournisseurRepository extends GenericRepository<FournisseurRequ
     // Méthode ajoutée
     @Query("SELECT DISTINCT f FROM Fournisseur f WHERE f.account.id = :accountId")
     Optional<Fournisseur> findByAccountId(@Param("accountId") Long accountId);
+
+    // Méthode ajoutée
+    @Query("SELECT DISTINCT f FROM Fournisseur f WHERE f.account.id = :accountId")
+    Optional<Fournisseur> findFournisseureByAccountId(@Param("accountId") Long accountId);
 }

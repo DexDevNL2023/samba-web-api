@@ -45,6 +45,13 @@ public class FournisseurControllerImpl extends ControllerGenericImpl<Fournisseur
         return new Fournisseur();
     }
 
+    @GetMapping(value = "/find/by/user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = "Authorization")
+    public ResponseEntity<RessourceResponse<FournisseurResponse>> getFournisseurByUserId(@NotNull @PathVariable("userId") Long userId) {
+        authorizationService.checkIfHasDroit(new DroitAddRequest(MODULE_NAME, AppConstants.READ_PERMISSION));
+        return new ResponseEntity<>(new RessourceResponse<>("Fournisseur trouvés avec succès!", service.findFournisseurByUserId(userId)), HttpStatus.OK);
+    }
+
     @GetMapping(value = "/find/by/branche/{brancheId}", produces = MediaType.APPLICATION_JSON_VALUE)
     @SecurityRequirement(name = "Authorization")
     public ResponseEntity<RessourceResponse<List<FournisseurResponse>>> getFournisseurWithBranchesById(@NotNull @PathVariable("brancheId") Long brancheId) {

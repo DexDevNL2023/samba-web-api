@@ -6,19 +6,21 @@ import com.teleo.manager.assurance.entities.Souscription;
 import com.teleo.manager.assurance.enums.PaymentFrequency;
 import com.teleo.manager.assurance.enums.SouscriptionStatus;
 import com.teleo.manager.assurance.repositories.SouscriptionRepository;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.exceptions.InternalException;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import com.teleo.manager.generic.logging.LogExecution;
+import com.teleo.manager.generic.service.ArtelMoneyService;
+import com.teleo.manager.generic.service.MoovMoneyService;
 import com.teleo.manager.generic.service.PayPalService;
 import com.teleo.manager.generic.service.StripeService;
-import com.teleo.manager.generic.service.MoovMoneyService;
-import com.teleo.manager.generic.service.ArtelMoneyService;
 import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
 import com.teleo.manager.generic.utils.GenericUtils;
 import com.teleo.manager.notification.enums.TypeNotification;
 import com.teleo.manager.notification.services.NotificationService;
 import com.teleo.manager.paiement.dto.reponse.PaiementResponse;
 import com.teleo.manager.paiement.dto.request.PaiementRequest;
+import com.teleo.manager.paiement.dto.request.PublicPaiementRequest;
 import com.teleo.manager.paiement.entities.Paiement;
 import com.teleo.manager.paiement.entities.RecuPaiement;
 import com.teleo.manager.paiement.enums.PaymentType;
@@ -34,15 +36,22 @@ import com.teleo.manager.sinistre.entities.Sinistre;
 import com.teleo.manager.sinistre.enums.SinistreStatus;
 import com.teleo.manager.sinistre.repositories.SinistreRepository;
 import jakarta.transaction.Transactional;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.Period;
-import java.time.ZoneId;
-import java.util.Date;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @Transactional
 public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, PaiementResponse, Paiement> implements PaiementService {
@@ -147,6 +156,9 @@ public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, Pai
             paiement.setMontant(montantRestant); // Effectuer un paiement partiel
         }
 
+        // Générer les détails du reçu en fonction du type de paiement
+        String details = buildDetailsFromPaiement(paiement);
+
         // Sauvegarder le paiement
         repository.save(paiement);
 
@@ -166,9 +178,8 @@ public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, Pai
                 break;
         }
 
-        // Générer les détails du reçu en fonction du type de paiement
-        String details = buildDetailsFromPaiement(paiement);
-        recuPaiement.setDetails(details); // Ajouter les détails au reçu
+        // Ajouter les détails au reçu
+        recuPaiement.setDetails(details);
 
         // Sauvegarder le reçu
         recuPaiementRepository.save(recuPaiement);
@@ -218,47 +229,88 @@ public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, Pai
         return paiement;
     }
 
-    // Méthode pour construire les détails du reçu à partir des informations du paiement
     @Transactional
     @LogExecution
     private String buildDetailsFromPaiement(Paiement paiement) {
         // Récupérer les informations de la souscription et du paiement
         Souscription souscription = paiement.getSouscription();
-        PoliceAssurance police = souscription != null ? souscription.getPolice() : null;
-        Date delai = calculeDelai(souscription != null ? souscription.getDateSouscription() : LocalDate.now(),
-                souscription != null ? souscription.getFrequencePaiement() : PaymentFrequency.MENSUEL);
-        PaymentType type = paiement.getType();
+        if (souscription == null) {
+            throw new RessourceNotFoundException("Impossible de traiter le paiement");
+        }
+
+        // Créer une pagination pour une seule entrée par page
+        Pageable pageable = PageRequest.of(0, 1, Sort.by(Sort.Direction.DESC, "datePaiement"));
+
+        // Récupérer la date du dernier paiement effectué pour cette souscription
+        Page<Paiement> paiementPage;
+        if (paiement.getType() == PaymentType.PRIME) {
+            paiementPage = repository.findLastPrimePaiementBySouscriptionId(souscription.getId(), pageable);
+        } else {
+            paiementPage = repository.findLastOtherPaiementBySouscriptionId(souscription.getId(), pageable);
+        }
+
+        Optional<Paiement> latestPaiementOpt = paiementPage.getContent().stream().findFirst();
+
+        // Déterminer la date de début pour le calcul du délai
+        LocalDate dateDebut = latestPaiementOpt.map(Paiement::getDatePaiement)
+                .orElse(souscription.getDateSouscription());
+
+        // Déterminer la période correspondante du paiement
+        LocalDate delai = calculeDelai(dateDebut,
+                souscription.getFrequencePaiement());
+
+        // Vérifier que la date de paiement est présente
+        LocalDate currentDatePaiement = paiement.getDatePaiement();
+
+        if (currentDatePaiement != null
+                && !currentDatePaiement.isEqual(delai)
+                && !delai.isEqual(souscription.getDateSouscription())) {
+
+            paiement.setDatePaiement(delai);
+            log.info("Date de paiement effectuée : " + paiement.getDatePaiement());
+        }
+
+        // Format de date souhaité
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+        String formattedDate = delai.format(formatter);
 
         // Construire les détails selon le type de paiement
-        return switch (type) {
-            case PRIME -> "Paiement de la prime de la " + (police != null ? police.getLabel() : "police d'assurance") +
-                    " pour " + delai + ", souscription n° " + (souscription != null ? souscription.getNumeroSouscription() : "n/a");
+        return switch (paiement.getType()) {
+            case PRIME -> {
+                if (paiement.getSouscription() != null && paiement.getSouscription().getPolice() != null) {
+                    PoliceAssurance police = souscription.getPolice();
+                    yield "Paiement de la prime de la " + police.getLabel() +
+                            " pour " + formattedDate + ", souscription n° " + souscription.getNumeroSouscription();
+                }
+                yield "Paiement de la prime d'assurance pour la souscription n° " +
+                        souscription.getNumeroSouscription();
+            }
             case REMBOURSEMENT -> {
                 if (paiement.getReclamation() != null && paiement.getReclamation().getSinistre() != null) {
                     Sinistre sinistre = paiement.getReclamation().getSinistre();
                     yield "Remboursement après " + sinistre.getLabel() + " du " + sinistre.getDateDeclaration() +
-                            " pour la souscription n° " + (souscription != null ? souscription.getNumeroSouscription() : "n/a");
+                            " pour la souscription n° " + souscription.getNumeroSouscription();
                 }
-                yield "Paiement de la prime d'assurance pour la souscription n° " +
-                        (souscription != null ? souscription.getNumeroSouscription() : "n/a");
+                yield "Paiement de votre sinistre pour la souscription n° " +
+                        souscription.getNumeroSouscription();
             }
             case PRESTATION -> {
                 if (paiement.getReclamation() != null && paiement.getReclamation().getSinistre() != null) {
                     Prestation prestation = paiement.getReclamation().getPrestation();
                     yield "Paiement pour la " + prestation.getLabel() + " du " + prestation.getDatePrestation() +
-                            " liée à la souscription n° " + (souscription != null ? souscription.getNumeroSouscription() : "n/a");
+                            " liée à la souscription n° " + souscription.getNumeroSouscription();
                 }
-                yield "Paiement de la prime d'assurance pour la souscription n° " +
-                        (souscription != null ? souscription.getNumeroSouscription() : "n/a");
+                yield "Paiement de votre prestation pour la souscription n° " +
+                        souscription.getNumeroSouscription();
             }
             default -> "Paiement de la prime d'assurance pour la souscription n° " +
-                    (souscription != null ? souscription.getNumeroSouscription() : "n/a");
+                    souscription.getNumeroSouscription();
         };
     }
 
     @Transactional
     @LogExecution
-    private Date calculeDelai(LocalDate dateSouscription, PaymentFrequency frequencePaiement) {
+    private LocalDate calculeDelai(LocalDate dateSouscription, PaymentFrequency frequencePaiement) {
         // Initialize a variable to hold the calculated delay period
         Period delayPeriod = switch (frequencePaiement) {
             case MENSUEL -> Period.ofMonths(1);
@@ -270,10 +322,23 @@ public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, Pai
 
         // Calculate the delay based on the payment frequency
         // Add the delay period to the subscription date to get the expiration date
-        LocalDate delaiDate = dateSouscription.plus(delayPeriod);
+        return dateSouscription.plus(delayPeriod);
+    }
 
-        // Convert LocalDate to Date if needed
-        return Date.from(delaiDate.atStartOfDay(ZoneId.systemDefault()).toInstant());
+    @Transactional
+    @LogExecution
+    public BigDecimal calculeMontantTotalPrime(BigDecimal montantCotisation, PaymentFrequency frequencePaiement) {
+        // Par défaut, on suppose que le montant des cotisations est mensuel
+        BigDecimal montantTotal = switch (frequencePaiement) {
+            case MENSUEL -> montantCotisation.multiply(BigDecimal.valueOf(1)); // 1 mois
+            case TRIMESTRIEL -> montantCotisation.multiply(BigDecimal.valueOf(3)); // 3 mois
+            case SEMESTRIEL -> montantCotisation.multiply(BigDecimal.valueOf(6)); // 6 mois
+            case ANNUEL -> montantCotisation.multiply(BigDecimal.valueOf(12)); // 12 mois
+            default -> montantCotisation.multiply(BigDecimal.valueOf(1)); // Par défaut, mensuel
+        };
+
+        // Retourner le montant total à payer
+        return montantTotal;
     }
 
     @Transactional
@@ -328,5 +393,52 @@ public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, Pai
         Paiement paiement = repository.findByRecuPaiementId(recuPaiementId)
                 .orElseThrow(() -> new RessourceNotFoundException("Paiement avec l'ID reçu " + recuPaiementId + " introuvable"));
         return mapper.toDto(paiement);
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public PaiementResponse makePaiement(PublicPaiementRequest dto) {
+        log.info("Démarrage de la méthode makePaiement avec le DTO : {}", dto);
+
+        // Recherche de la souscription par ID
+        Souscription souscription = souscriptionRepository.findById(dto.getSouscription())
+                .orElseThrow(() -> new RessourceNotFoundException(
+                        "Souscription avec l'ID " + dto.getSouscription() + " introuvable"));
+        log.info("Souscription récupérée : {}", souscription);
+
+        // On calcul le montant effectif du paiement
+        BigDecimal montantPaiement = calculeMontantTotalPrime(souscription.getMontantCotisation(), souscription.getFrequencePaiement());
+        log.info("Montant total à payer : " + montantPaiement);
+
+        // Construction de l'objet Paiement
+        Paiement paiement = new Paiement();
+        paiement.setMode(dto.getMode());
+        paiement.setDatePaiement(LocalDate.now());
+        paiement.setMontant(montantPaiement);
+        paiement.setSouscription(souscription);
+        paiement.setType(PaymentType.PRIME);
+        log.info("Paiement préparé avec les informations : {}", paiement);
+
+        // Construire le paiement avec la méthode buildPaiement
+        paiement = buildPaiement(paiement);
+        log.info("Paiement après appel à buildPaiement : {}", paiement);
+
+        // Récupération de la réponse finale
+        PaiementResponse response = getOne(paiement);
+        log.info("Réponse de paiement retournée : {}", response);
+
+        return response;
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public PaiementResponse getOne(Paiement entity) {
+        PaiementResponse dto = mapper.toDto(entity);
+        dto.setRecuPaiements(entity.getRecuPaiements().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        return dto;
     }
 }

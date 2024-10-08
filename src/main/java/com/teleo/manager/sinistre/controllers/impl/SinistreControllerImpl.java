@@ -11,14 +11,12 @@ import com.teleo.manager.sinistre.dto.request.SinistreRequest;
 import com.teleo.manager.sinistre.entities.Sinistre;
 import com.teleo.manager.sinistre.services.SinistreService;
 import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.constraints.NotNull;
+import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import io.swagger.v3.oas.annotations.tags.Tag;
-import org.springframework.cloud.context.config.annotation.RefreshScope;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -66,5 +64,19 @@ public class SinistreControllerImpl extends ControllerGenericImpl<SinistreReques
     public ResponseEntity<RessourceResponse<SinistreResponse>> getWithDocumentsById(@NotNull @PathVariable("documentId") Long documentId) {
         authorizationService.checkIfHasDroit(new DroitAddRequest(MODULE_NAME, AppConstants.READ_PERMISSION));
         return new ResponseEntity<>(new RessourceResponse<>("Sinistres récupérés avec succès!", service.findWithDocumentsById(documentId)), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/find/by/user/{userId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = "Authorization")
+    public ResponseEntity<RessourceResponse<List<SinistreResponse>>> getAllByUserId(@NotNull @PathVariable("userId") Long userId) {
+        authorizationService.checkIfHasDroit(new DroitAddRequest(MODULE_NAME, AppConstants.READ_PERMISSION));
+        return new ResponseEntity<>(new RessourceResponse<>("Sinistres retrouvé avec succès!", service.findByUserId(userId)), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/find/by/assure/{assureId}", produces = MediaType.APPLICATION_JSON_VALUE)
+    @SecurityRequirement(name = "Authorization")
+    public ResponseEntity<RessourceResponse<List<SinistreResponse>>> getAllByAssureId(@NotNull @PathVariable("assureId") Long assureId) {
+        authorizationService.checkIfHasDroit(new DroitAddRequest(MODULE_NAME, AppConstants.READ_PERMISSION));
+        return new ResponseEntity<>(new RessourceResponse<>("Sinistres retrouvé avec succès!", service.findByAssureId(assureId)), HttpStatus.OK);
     }
 }

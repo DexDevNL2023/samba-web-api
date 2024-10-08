@@ -1,8 +1,8 @@
 package com.teleo.manager.sinistre.repositories;
 
+import com.teleo.manager.generic.repository.GenericRepository;
 import com.teleo.manager.sinistre.dto.request.SinistreRequest;
 import com.teleo.manager.sinistre.entities.Sinistre;
-import com.teleo.manager.generic.repository.GenericRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -21,4 +21,7 @@ public interface SinistreRepository extends GenericRepository<SinistreRequest, S
 
     @Query("SELECT DISTINCT s FROM Sinistre s LEFT JOIN FETCH s.documents d WHERE d.id = :documentId")
     Optional<Sinistre> findByIdWithDocuments(@Param("documentId") Long documentId);
+
+    @Query("SELECT DISTINCT s FROM Sinistre s LEFT JOIN FETCH s.souscription e WHERE e.assure.id = :assureId")
+    List<Sinistre> findAllByAssureId(@Param("assureId") Long assureId);
 }

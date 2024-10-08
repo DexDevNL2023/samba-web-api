@@ -7,12 +7,14 @@ import com.teleo.manager.assurance.enums.InsuranceType;
 import com.teleo.manager.assurance.mapper.AssuranceMapper;
 import com.teleo.manager.assurance.repositories.AssuranceRepository;
 import com.teleo.manager.assurance.services.AssuranceService;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import com.teleo.manager.generic.logging.LogExecution;
 import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
+
+import java.util.stream.Collectors;
 
 @Service
 @Transactional
@@ -49,5 +51,16 @@ public class AssuranceServiceImpl extends ServiceGenericImpl<AssuranceRequest, A
     public Assurance findByType(InsuranceType insuranceType) {
         return repository.findAssurancesByType(insuranceType).orElse(null);
    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public AssuranceResponse getOne(Assurance entity) {
+        AssuranceResponse dto = mapper.toDto(entity);
+        dto.setPolices(entity.getPolices().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        return dto;
+    }
 }
 

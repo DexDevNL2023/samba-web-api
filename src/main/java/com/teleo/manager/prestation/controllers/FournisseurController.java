@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import java.util.List;
 
 public interface FournisseurController extends ControllerGeneric<FournisseurRequest, FournisseurResponse, Fournisseur> {
+    ResponseEntity<RessourceResponse<FournisseurResponse>> getFournisseurByUserId(@NotNull @PathVariable("userId") Long userId);
     ResponseEntity<RessourceResponse<List<FournisseurResponse>>> getFournisseurWithBranchesById(@NotNull @PathVariable("branchId") Long branchId);
     ResponseEntity<RessourceResponse<FournisseurResponse>> getFournisseurWithPrestationsById(@NotNull @PathVariable("prestationId") Long prestationId);
     ResponseEntity<RessourceResponse<FournisseurResponse>> getFournisseurWithRegistrantsById(@NotNull @PathVariable("registrantId") Long registrantId);

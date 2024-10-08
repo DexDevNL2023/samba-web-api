@@ -5,44 +5,33 @@ import com.teleo.manager.assurance.dto.reponse.GarantieResponse;
 import com.teleo.manager.assurance.dto.reponse.PoliceAssuranceResponse;
 import com.teleo.manager.assurance.dto.reponse.SouscriptionResponse;
 import com.teleo.manager.assurance.dto.request.PublicSouscriptionRequest;
-import com.teleo.manager.assurance.enums.*;
 import com.teleo.manager.assurance.services.AssuranceService;
 import com.teleo.manager.assurance.services.GarantieService;
 import com.teleo.manager.assurance.services.PoliceAssuranceService;
 import com.teleo.manager.assurance.services.SouscriptionService;
-import com.teleo.manager.authentification.dto.request.DroitAddRequest;
-import com.teleo.manager.authentification.enums.Authority;
-import com.teleo.manager.authentification.enums.SocialProvider;
 import com.teleo.manager.generic.dto.reponse.RessourceResponse;
-import com.teleo.manager.generic.enums.EnumValue;
-import com.teleo.manager.generic.utils.AppConstants;
-import com.teleo.manager.notification.enums.TypeNotification;
-import com.teleo.manager.paiement.enums.PaymentMode;
-import com.teleo.manager.paiement.enums.PaymentType;
-import com.teleo.manager.prestation.enums.FinanceurType;
-import com.teleo.manager.prestation.enums.PrestationStatus;
-import com.teleo.manager.prestation.enums.PrestationType;
-import com.teleo.manager.rapport.enums.RapportType;
-import com.teleo.manager.sinistre.enums.SinistreStatus;
-import com.teleo.manager.sinistre.enums.StatutReclamation;
-import com.teleo.manager.sinistre.enums.TypeReclamation;
-import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.media.Content;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import com.teleo.manager.paiement.dto.reponse.PaiementResponse;
+import com.teleo.manager.paiement.dto.request.PublicPaiementRequest;
+import com.teleo.manager.paiement.services.PaiementService;
+import com.teleo.manager.prestation.dto.reponse.PrestationResponse;
+import com.teleo.manager.prestation.dto.request.PublicPrestationRequest;
+import com.teleo.manager.prestation.services.PrestationService;
+import com.teleo.manager.sinistre.dto.reponse.ReclamationResponse;
+import com.teleo.manager.sinistre.dto.reponse.SinistreResponse;
+import com.teleo.manager.sinistre.dto.request.PublicReclamationRequest;
+import com.teleo.manager.sinistre.dto.request.PublicSinistreRequest;
+import com.teleo.manager.sinistre.services.ReclamationService;
+import com.teleo.manager.sinistre.services.SinistreService;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
 import org.springframework.cloud.context.config.annotation.RefreshScope;
-import org.springframework.hateoas.MediaTypes;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RefreshScope
 @ResponseBody
@@ -56,12 +45,20 @@ public class PublicController {
     private final AssuranceService assuranceService;
     private final GarantieService garantieService;
     private final SouscriptionService souscriptionService;
+    private final SinistreService sinistreService;
+    private final PaiementService paiementService;
+    private final ReclamationService reclamationService;
+    private final PrestationService prestationService;
 
-    public PublicController(PoliceAssuranceService policeAssuranceService, AssuranceService assertionService, GarantieService garantieService, SouscriptionService souscriptionService) {
+    public PublicController(PoliceAssuranceService policeAssuranceService, AssuranceService assertionService, GarantieService garantieService, SouscriptionService souscriptionService, SinistreService sinistreService, PaiementService paiementService, ReclamationService reclamationService, PrestationService prestationService) {
         this.policeAssuranceService = policeAssuranceService;
         this.assuranceService = assertionService;
         this.garantieService = garantieService;
         this.souscriptionService = souscriptionService;
+        this.sinistreService = sinistreService;
+        this.paiementService = paiementService;
+        this.reclamationService = reclamationService;
+        this.prestationService = prestationService;
     }
 
     @GetMapping(value = "/police/assurance", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -107,5 +104,25 @@ public class PublicController {
     @PostMapping(value = "/make/souscription", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RessourceResponse<SouscriptionResponse>> makeSouscription(@Valid @RequestBody PublicSouscriptionRequest dto) {
         return new ResponseEntity<>(new RessourceResponse<>("Souscription effectuée avec succès !", souscriptionService.makeSouscription(dto)), HttpStatus.CREATED);
+    }
+
+    @PostMapping(value = "/make/declaration/sinistre", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RessourceResponse<SinistreResponse>> makeDeclarationSinistre(@Valid @RequestBody PublicSinistreRequest dto) {
+        return new ResponseEntity<>(new RessourceResponse<>("Declaration de sinistre effectuée avec succès !", sinistreService.makeDeclarationSinistre(dto)), HttpStatus.CREATED);
+    }
+
+    @PostMapping(value = "/make/paiement", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RessourceResponse<PaiementResponse>> makePaiement(@Valid @RequestBody PublicPaiementRequest dto) {
+        return new ResponseEntity<>(new RessourceResponse<>("Paiement de votre prime effectuée avec succès !", paiementService.makePaiement(dto)), HttpStatus.CREATED);
+    }
+
+    @PostMapping(value = "/make/demande/remboursement", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RessourceResponse<ReclamationResponse>> makeDemandeRemboursement(@Valid @RequestBody PublicReclamationRequest dto) {
+        return new ResponseEntity<>(new RessourceResponse<>("Demamde de remboursement effectuée avec succès !", reclamationService.makeDemandeRemboursement(dto)), HttpStatus.CREATED);
+    }
+
+    @PostMapping(value = "/make/prestation", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RessourceResponse<PrestationResponse>> makePrestation(@Valid @RequestBody PublicPrestationRequest dto) {
+        return new ResponseEntity<>(new RessourceResponse<>("Prestation effectuée avec succès !", prestationService.makePrestation(dto)), HttpStatus.CREATED);
     }
 }

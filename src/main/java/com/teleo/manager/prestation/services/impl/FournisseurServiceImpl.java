@@ -2,6 +2,7 @@ package com.teleo.manager.prestation.services.impl;
 
 import com.teleo.manager.authentification.entities.Account;
 import com.teleo.manager.authentification.repositories.AccountRepository;
+import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.exceptions.InternalException;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import com.teleo.manager.generic.logging.LogExecution;
@@ -81,45 +82,16 @@ public class FournisseurServiceImpl extends ServiceGenericImpl<FournisseurReques
 
     @Transactional
     @LogExecution
-    public FournisseurResponse buildDto(Fournisseur fournisseur) {
-        // Vérification que le fournisseur existe
-        if (fournisseur != null) {
-            // Extraction des branches associées aux registrants
-            List<Long> branches = fournisseur.getRegistrants().stream()
-                    .map(f -> f.getBranche().getId())
-                    .collect(Collectors.toList());
-
-            // Construction du dto'
-            FournisseurResponse response = mapper.toDto(fournisseur);
-
-            // Ajout des branches dans l'entité fournisseur
-            response.setBranches(branches);
-
-            return response;
-        }
-
-        return new FournisseurResponse();
-    }
-
-    @Transactional
-    @LogExecution
-    @Override
-    public FournisseurResponse getOne(Fournisseur entity) {
-        return buildDto(entity);
-    }
-
-    @Transactional
-    @LogExecution
     @Override
     public List<FournisseurResponse> getAll() {
-        return repository.findAll().stream().filter(e -> !e.getIsDeleted()).map(this::buildDto).collect(Collectors.toList());
+        return repository.findAll().stream().filter(e -> !e.getIsDeleted()).map(this::getOne).collect(Collectors.toList());
     }
 
     @Transactional
     @LogExecution
     @Override
     public List<FournisseurResponse> getAllByIds(List<Long> ids) {
-        return repository.findAllById(ids).stream().filter(e -> !e.getIsDeleted()).map(this::buildDto).collect(Collectors.toList());
+        return repository.findAllById(ids).stream().filter(e -> !e.getIsDeleted()).map(this::getOne).collect(Collectors.toList());
     }
 
     @Transactional
@@ -177,6 +149,15 @@ public class FournisseurServiceImpl extends ServiceGenericImpl<FournisseurReques
 
     @Transactional
     @LogExecution
+    @Override
+    public FournisseurResponse findFournisseurByUserId(Long userId) {
+        Fournisseur fournisseur = repository.findFournisseureByAccountId(userId)
+                .orElseThrow(() -> new RessourceNotFoundException("Fournisseur avec l'ID account : " + userId + " introuvable"));
+        return mapper.toDto(fournisseur);
+    }
+
+    @Transactional
+    @LogExecution
     private List<Registrant> buildRegistrants(List<Long> branchIds) {
         return branchIds.stream()
                 .map(branchId -> {
@@ -192,5 +173,23 @@ public class FournisseurServiceImpl extends ServiceGenericImpl<FournisseurReques
     private Branche getBrancheById(Long branchId) {
         return brancheRepository.findById(branchId)
                 .orElseThrow(() -> new RessourceNotFoundException("Branche avec l'ID " + branchId + " introuvable"));
+    }
+
+    @Transactional
+    @LogExecution
+    @Override
+    public FournisseurResponse getOne(Fournisseur entity) {
+        FournisseurResponse dto = mapper.toDto(entity);
+        dto.setPrestations(entity.getPrestations().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        dto.setRegistrants(entity.getRegistrants().stream()
+                .map(BaseEntity::getId)
+                .collect(Collectors.toList()));
+        // Ajout des branches dans l'entité fournisseur
+        dto.setBranches(entity.getRegistrants().stream()
+                .map(f -> f.getBranche().getId())
+                .collect(Collectors.toList()));
+        return dto;
     }
 }
