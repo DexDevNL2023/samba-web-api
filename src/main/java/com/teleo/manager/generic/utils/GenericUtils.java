@@ -85,10 +85,8 @@ public class GenericUtils {
         urlBuilder.append(scheme).append("://").append(serverName);
 
         // Ajouter le port s'il est défini et s'il ne s'agit pas du port par défaut (80 pour HTTP, 443 pour HTTPS)
-        if (serverPort > 0) {
-            if ((scheme.equals("http") && serverPort != 80) || (scheme.equals("https") && serverPort != 443)) {
-                urlBuilder.append(":").append(serverPort);
-            }
+        if (serverPort > 0 && ((scheme.equals("http") && serverPort != 80) || (scheme.equals("https") && serverPort != 443))) {
+            urlBuilder.append(":").append(serverPort);
         }
 
         return urlBuilder.toString();
