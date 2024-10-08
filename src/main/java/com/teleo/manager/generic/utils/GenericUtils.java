@@ -77,11 +77,7 @@ public class GenericUtils {
         String scheme = "http"; // Valeur par défaut pour développement
         if ("prod".equalsIgnoreCase(activeProfile)) {
             scheme = "https";
-        }
-
-        // Gérer l'adresse du serveur
-        if (serveurName == null || serveurName.isEmpty() ||
-                ("prod".equalsIgnoreCase(activeProfile) && serveurName.equalsIgnoreCase("localhost"))) {
+            // Gérer l'adresse du serveur
             // URL par défaut en production
             serveurName = "samba-web-api-c9e839abd962.herokuapp.com";
         }
