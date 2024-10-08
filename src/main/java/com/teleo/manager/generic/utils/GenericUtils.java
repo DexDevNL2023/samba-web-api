@@ -70,24 +70,25 @@ public class GenericUtils {
     }
 
     public static String getServerAbsoluteUrl() {
-        // Gérer l'adresse du serveur
-        String serveurName = serverAddress;
+        // Définir les variables de base
+        String scheme = "http";
+        String serverName = serverAddress;
 
-        // Déterminer le schéma (http ou https) en fonction du profil actif
-        String scheme = "http"; // Valeur par défaut pour développement
+        // Déterminer le schéma et le nom du serveur en fonction du profil actif
         if ("prod".equalsIgnoreCase(activeProfile)) {
             scheme = "https";
-            // Gérer l'adresse du serveur
-            // URL par défaut en production
-            serveurName = "samba-web-api-c9e839abd962.herokuapp.com";
+            serverName = "samba-web-api-c9e839abd962.herokuapp.com";
         }
 
-        // Construire l'URL de base
-        StringBuilder urlBuilder = new StringBuilder(scheme + "://" + serveurName);
+        // Construire l'URL de base avec le schéma et le nom du serveur
+        StringBuilder urlBuilder = new StringBuilder();
+        urlBuilder.append(scheme).append("://").append(serverName);
 
-        // Ajouter le port selon les règles définies
+        // Ajouter le port s'il est défini et s'il ne s'agit pas du port par défaut (80 pour HTTP, 443 pour HTTPS)
         if (serverPort > 0) {
-            urlBuilder.append(":").append(serverPort);
+            if ((scheme.equals("http") && serverPort != 80) || (scheme.equals("https") && serverPort != 443)) {
+                urlBuilder.append(":").append(serverPort);
+            }
         }
 
         return urlBuilder.toString();
