@@ -75,18 +75,21 @@ public class GenericUtils {
         String serverName = serverAddress;
 
         // Déterminer le schéma et le nom du serveur en fonction du profil actif
-        if ("prod".equalsIgnoreCase(activeProfile)) {
+        boolean isProd = "prod".equalsIgnoreCase(activeProfile);
+        if (isProd) {
             scheme = "https";
-            serverName = "samba-web-api-c9e839abd962.herokuapp.com";
+            serverName = "samba-web-api-c9e839abd962.herokuapp.com/";
         }
 
         // Construire l'URL de base avec le schéma et le nom du serveur
         StringBuilder urlBuilder = new StringBuilder();
         urlBuilder.append(scheme).append("://").append(serverName);
 
-        // Ajouter le port s'il est défini et s'il ne s'agit pas du port par défaut (80 pour HTTP, 443 pour HTTPS)
-        if (serverPort > 0 && ((scheme.equals("http") && serverPort != 80) || (scheme.equals("https") && serverPort != 443))) {
-            urlBuilder.append(":").append(serverPort);
+        // En mode développement, ajouter le port s'il est défini et s'il ne s'agit pas du port par défaut (80 pour HTTP, 443 pour HTTPS)
+        if (!isProd && serverPort > 0) {
+            if (serverPort != 80) {
+                urlBuilder.append(":").append(serverPort);
+            }
         }
 
         return urlBuilder.toString();
