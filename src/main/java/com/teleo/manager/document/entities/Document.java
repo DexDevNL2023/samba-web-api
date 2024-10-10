@@ -2,6 +2,7 @@ package com.teleo.manager.document.entities;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.teleo.manager.document.dto.request.DocumentRequest;
+import com.teleo.manager.document.enums.TypeDocument;
 import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.prestation.entities.Prestation;
 import com.teleo.manager.sinistre.entities.Sinistre;
@@ -27,6 +28,10 @@ public class Document extends BaseEntity<Document, DocumentRequest> {
     @Column(nullable = false)
     private String nom;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private TypeDocument type;
+
     @Column(length = 5000)
     private String description;
 
@@ -47,6 +52,7 @@ public class Document extends BaseEntity<Document, DocumentRequest> {
     public void update(Document source) {
         this.numeroDocument = source.getNumeroDocument();
         this.nom = source.getNom();
+        this.type = source.getType();
         this.description = source.getDescription();
         this.url = source.getUrl();
 
@@ -66,7 +72,8 @@ public class Document extends BaseEntity<Document, DocumentRequest> {
                 nom.equals(source.getNom()) &&
                 ((description == null && source.getDescription() == null) ||
                         (description != null && description.equals(source.getDescription()))) &&
-                url.equals(source.getUrl());
+                url.equals(source.getUrl()) &&
+                type.equals(source.getType());
 
         // Comparaison des entités associées
         boolean isSinistreEqual = (sinistre == null && source.getSinistre() == null) ||
@@ -94,6 +101,7 @@ public class Document extends BaseEntity<Document, DocumentRequest> {
                 "id=" + getId() +
                 ", numeroDocument='" + numeroDocument + '\'' +
                 ", nom='" + nom + '\'' +
+                ", type=" + type +
                 ", description='" + description + '\'' +
                 ", url='" + url + '\'' +
                 ", sinistre=" + sinistre.getId() +

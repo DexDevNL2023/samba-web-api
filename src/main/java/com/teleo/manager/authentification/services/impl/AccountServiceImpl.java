@@ -5,42 +5,37 @@ import com.teleo.manager.assurance.entities.Assure;
 import com.teleo.manager.assurance.enums.Gender;
 import com.teleo.manager.assurance.repositories.AssureRepository;
 import com.teleo.manager.authentification.dto.reponse.AccountResponse;
+import com.teleo.manager.authentification.dto.reponse.JwtAuthenticationResponse;
 import com.teleo.manager.authentification.dto.reponse.UserResponse;
 import com.teleo.manager.authentification.dto.reponse.VerificationTokenResponse;
 import com.teleo.manager.authentification.dto.request.*;
+import com.teleo.manager.authentification.entities.*;
 import com.teleo.manager.authentification.enums.Authority;
-import com.teleo.manager.generic.email.MailService;
-import com.teleo.manager.generic.service.ImageService;
-import com.teleo.manager.generic.service.OcrService;
-import com.teleo.manager.notification.entities.Notification;
-import com.teleo.manager.notification.enums.TypeNotification;
-import com.teleo.manager.notification.repositories.NotificationRepository;
-import com.teleo.manager.prestation.entities.Fournisseur;
-import com.teleo.manager.prestation.repositories.FournisseurRepository;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.transaction.Transactional;
-
-import com.teleo.manager.authentification.dto.reponse.JwtAuthenticationResponse;
-import com.teleo.manager.authentification.entities.Permission;
-import com.teleo.manager.authentification.entities.Role;
-import com.teleo.manager.authentification.entities.Account;
-import com.teleo.manager.authentification.entities.DefaultRole;
-import com.teleo.manager.authentification.entities.VerifyToken;
 import com.teleo.manager.authentification.mapper.AccountMapper;
 import com.teleo.manager.authentification.repositories.AccountRepository;
 import com.teleo.manager.authentification.repositories.VerifyTokenRepository;
-import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
-import com.teleo.manager.generic.logging.LogExecution;
-import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
-import com.teleo.manager.generic.utils.AppConstants;
-import com.teleo.manager.generic.utils.GenericUtils;
 import com.teleo.manager.authentification.security.jwt.JwtUtils;
 import com.teleo.manager.authentification.services.AccountService;
 import com.teleo.manager.authentification.services.PermissionService;
-
+import com.teleo.manager.generic.email.MailService;
+import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
+import com.teleo.manager.generic.logging.LogExecution;
+import com.teleo.manager.generic.service.ImageService;
+import com.teleo.manager.generic.service.OcrService;
+import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
+import com.teleo.manager.generic.utils.AppConstants;
+import com.teleo.manager.generic.utils.GenericUtils;
+import com.teleo.manager.notification.entities.Notification;
+import com.teleo.manager.notification.enums.TypeNotification;
+import com.teleo.manager.notification.repositories.NotificationRepository;
+import com.teleo.manager.prestation.entities.DossierMedical;
+import com.teleo.manager.prestation.entities.Fournisseur;
+import com.teleo.manager.prestation.repositories.DossierMedicalRepository;
+import com.teleo.manager.prestation.repositories.FournisseurRepository;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import net.sourceforge.tess4j.TesseractException;
-import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -54,9 +49,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
 
 @Slf4j
 @Service
@@ -73,10 +71,11 @@ public class AccountServiceImpl extends ServiceGenericImpl<AccountRequest, Accou
     private final NotificationRepository notificationRepository;
     private final AssureRepository assureRepository;
     private final FournisseurRepository fournisseurRepository;
+    private final DossierMedicalRepository dossierMedicalRepository;
     private final ImageService imageService;
     private final OcrService ocrService;
 
-    public AccountServiceImpl(AccountRepository repository, AccountMapper mapper, MailService mailService, JwtUtils jwtUtils, VerifyTokenRepository tokenRepository, PermissionService permissionService, NotificationRepository notificationRepository, AssureRepository assureRepository, FournisseurRepository fournisseurRepository, ImageService imageService, OcrService ocrService) {
+    public AccountServiceImpl(AccountRepository repository, AccountMapper mapper, MailService mailService, JwtUtils jwtUtils, VerifyTokenRepository tokenRepository, PermissionService permissionService, NotificationRepository notificationRepository, AssureRepository assureRepository, FournisseurRepository fournisseurRepository, DossierMedicalRepository dossierMedicalRepository, ImageService imageService, OcrService ocrService) {
         super(Account.class, repository, mapper);
         this.repository = repository;
         this.mailService = mailService;
@@ -87,6 +86,7 @@ public class AccountServiceImpl extends ServiceGenericImpl<AccountRequest, Accou
         this.notificationRepository = notificationRepository;
         this.assureRepository = assureRepository;
         this.fournisseurRepository = fournisseurRepository;
+        this.dossierMedicalRepository = dossierMedicalRepository;
         this.imageService = imageService;
         this.ocrService = ocrService;
     }
@@ -657,9 +657,7 @@ public class AccountServiceImpl extends ServiceGenericImpl<AccountRequest, Accou
                         TypeNotification.INFO);
                 log.debug("15");
 
-                Assure assure = new Assure();
-                initializeAssure(assure, account);
-                assureRepository.save(assure);
+                initializeAssure(account);
                 break;
 
             case AGENT, ADMIN, SYSTEM:
@@ -668,9 +666,7 @@ public class AccountServiceImpl extends ServiceGenericImpl<AccountRequest, Accou
                 break;
 
             case PROVIDER:
-                Fournisseur fournisseur = new Fournisseur();
-                initializeFournisseur(fournisseur, account);
-                fournisseurRepository.save(fournisseur);
+                initializeFournisseur(account);
                 break;
 
             default:
@@ -678,41 +674,59 @@ public class AccountServiceImpl extends ServiceGenericImpl<AccountRequest, Accou
         }
     }
 
-    private void initializeAssure(Assure assure, Account account) {
+    private void initializeAssure(Account account) {
+        Assure assure = new Assure();
         assure.setAccount(account);
-        assure.setNumNiu(generateNumNiu()); // Générer un NUI unique
+        assure.setNumNiu(GenericUtils.generateNumNiu()); // Générer un NUI unique
         assure.setLastName(account.getFullName()); // Initialiser avec des données réelles
         assure.setFirstName("");
         assure.setDateNaissance(LocalDate.now()); // Exemple de date, mettre une date réelle
-        assure.setNumCni(generateNumCni()); // Générer un CNI unique
+        assure.setNumCni(GenericUtils.generateNumCni()); // Générer un CNI unique
         assure.setSexe(Gender.MALE); // Choisir selon besoin
         assure.setEmail(account.getEmail());
         assure.setTelephone("123456789");
         assure.setAdresse("Address example");
         assure.setSignature("Signature example");
+        assure = assureRepository.save(assure);
+
+        createDefaultDossierMedicalForAssure(assure);
     }
 
-    // Générer un numéro NUI au format "NUI-XXXXXXXXX" (9 chiffres)
-    public String generateNumNiu() {
-        String prefix = "NUI-";
-        String randomDigits = RandomStringUtils.randomNumeric(9); // Génère 9 chiffres aléatoires
-        return prefix + randomDigits;
+    public DossierMedical createDefaultDossierMedicalForAssure(Assure assure) {
+        // Créer un objet DossierMedical par défaut
+        DossierMedical dossierMedical = new DossierMedical();
+        dossierMedical.setNumDossierMedical("DM-2024-00123"); // Générer un numéro unique si nécessaire
+        dossierMedical.setPatient(assure);
+        dossierMedical.setDateUpdated(LocalDate.now());
+        dossierMedical.setMaladiesChroniques("Diabète de type 2, Hypertension");
+        dossierMedical.setMaladiesHereditaires("Antécédents familiaux de diabète et de cancer");
+        dossierMedical.setInterventionsChirurgicales("Appendicectomie en 2010");
+        dossierMedical.setHospitalisations("Hospitalisation pour pneumonie en 2018");
+        dossierMedical.setAllergies("Allergie aux arachides, intolérance au lactose");
+        dossierMedical.setVaccins("Vaccin contre la grippe (2024), Hépatite B (2023)");
+        dossierMedical.setHabitudesAlimentaires("Régime méditerranéen, faible consommation de sucre");
+        dossierMedical.setConsommationAlcool("Consommation occasionnelle");
+        dossierMedical.setConsommationTabac("Non-fumeur");
+        dossierMedical.setNiveauActivitePhysique("Modéré, pratique de la marche 3 fois par semaine");
+        dossierMedical.setRevenusAnnuels(new BigDecimal(30000));
+        dossierMedical.setChargesFinancieres(new BigDecimal(15000));
+        dossierMedical.setDeclarationBonneSante(true);
+        dossierMedical.setConsentementCollecteDonnees(true);
+        dossierMedical.setDeclarationNonFraude(true);
+
+        // Sauvegarder le dossier médical dans la base de données
+        return dossierMedicalRepository.save(dossierMedical);
     }
 
-    // Générer un numéro CNI au format "CNIXXXXXXX" (7 chiffres)
-    public String generateNumCni() {
-        String prefix = "CNI";
-        String randomDigits = RandomStringUtils.randomNumeric(7); // Génère 7 chiffres aléatoires
-        return prefix + randomDigits;
-    }
-
-    private void initializeFournisseur(Fournisseur fournisseur, Account account) {
+    private void initializeFournisseur(Account account) {
+        Fournisseur fournisseur = new Fournisseur();
         fournisseur.setAccount(account);
         fournisseur.setNom(account.getFullName());
         fournisseur.setTelephone("123456789");
         fournisseur.setEmail(account.getEmail());
         fournisseur.setAdresse("Address example");
         fournisseur.setServicesFournis("Services example");
+        fournisseurRepository.save(fournisseur);
     }
 
     @Transactional

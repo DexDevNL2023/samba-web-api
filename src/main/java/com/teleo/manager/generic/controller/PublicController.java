@@ -1,14 +1,8 @@
 package com.teleo.manager.generic.controller;
 
-import com.teleo.manager.assurance.dto.reponse.AssuranceResponse;
-import com.teleo.manager.assurance.dto.reponse.GarantieResponse;
-import com.teleo.manager.assurance.dto.reponse.PoliceAssuranceResponse;
-import com.teleo.manager.assurance.dto.reponse.SouscriptionResponse;
+import com.teleo.manager.assurance.dto.reponse.*;
 import com.teleo.manager.assurance.dto.request.PublicSouscriptionRequest;
-import com.teleo.manager.assurance.services.AssuranceService;
-import com.teleo.manager.assurance.services.GarantieService;
-import com.teleo.manager.assurance.services.PoliceAssuranceService;
-import com.teleo.manager.assurance.services.SouscriptionService;
+import com.teleo.manager.assurance.services.*;
 import com.teleo.manager.generic.dto.reponse.RessourceResponse;
 import com.teleo.manager.paiement.dto.reponse.PaiementResponse;
 import com.teleo.manager.paiement.dto.request.PublicPaiementRequest;
@@ -49,8 +43,9 @@ public class PublicController {
     private final PaiementService paiementService;
     private final ReclamationService reclamationService;
     private final PrestationService prestationService;
+    private final AssureService assureService;
 
-    public PublicController(PoliceAssuranceService policeAssuranceService, AssuranceService assertionService, GarantieService garantieService, SouscriptionService souscriptionService, SinistreService sinistreService, PaiementService paiementService, ReclamationService reclamationService, PrestationService prestationService) {
+    public PublicController(PoliceAssuranceService policeAssuranceService, AssuranceService assertionService, GarantieService garantieService, SouscriptionService souscriptionService, SinistreService sinistreService, PaiementService paiementService, ReclamationService reclamationService, PrestationService prestationService, AssureService assureService) {
         this.policeAssuranceService = policeAssuranceService;
         this.assuranceService = assertionService;
         this.garantieService = garantieService;
@@ -59,11 +54,12 @@ public class PublicController {
         this.paiementService = paiementService;
         this.reclamationService = reclamationService;
         this.prestationService = prestationService;
+        this.assureService = assureService;
     }
 
     @GetMapping(value = "/police/assurance", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RessourceResponse<List<PoliceAssuranceResponse>>> getAllPolicesAssurances() {
-        return new ResponseEntity<>(new RessourceResponse<>("Police d'assurance retrouvée avec succès!", policeAssuranceService.getAll()), HttpStatus.OK);
+        return new ResponseEntity<>(new RessourceResponse<>("Polices d'assurance retrouvée avec succès!", policeAssuranceService.getAll()), HttpStatus.OK);
     }
 
     @GetMapping(value = "/police/assurance/by/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -124,5 +120,15 @@ public class PublicController {
     @PostMapping(value = "/make/prestation", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<RessourceResponse<PrestationResponse>> makePrestation(@Valid @RequestBody PublicPrestationRequest dto) {
         return new ResponseEntity<>(new RessourceResponse<>("Prestation effectuée avec succès !", prestationService.makePrestation(dto)), HttpStatus.CREATED);
+    }
+
+    @GetMapping(value = "/assure", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RessourceResponse<List<AssureResponse>>> getAllAssures() {
+        return new ResponseEntity<>(new RessourceResponse<>("Assures retrouvée avec succès!", assureService.getAll()), HttpStatus.OK);
+    }
+
+    @GetMapping(value = "/assure/by/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
+    public ResponseEntity<RessourceResponse<AssureResponse>> getAssureById(@NotNull @PathVariable("id") Long id) {
+        return new ResponseEntity<>(new RessourceResponse<>("Assure retrouvée avec succès!", assureService.getOne(assureService.getById(id))), HttpStatus.OK);
     }
 }

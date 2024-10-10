@@ -1,6 +1,7 @@
 package com.teleo.manager.prestation.services.impl;
 
 import com.teleo.manager.document.entities.Document;
+import com.teleo.manager.document.enums.TypeDocument;
 import com.teleo.manager.document.repositories.DocumentRepository;
 import com.teleo.manager.generic.entity.audit.BaseEntity;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
@@ -147,7 +148,11 @@ public class PrestationServiceImpl extends ServiceGenericImpl<PrestationRequest,
                 document.setUrl(fileUrl);
                 document.setNom(docRequest.getNom());
                 document.setUrl(docRequest.getUrl());
-                log.info("Document préparé pour la sauvegarde : {}", document);
+                document.setType(TypeDocument.PRESTATION);
+
+                // Génération d'une description pour chaque document
+                document.setDescription("Document associé à la prestation : " + finalPrestation.getNumeroPrestation());
+                log.info("Document préparé avec les informations : {}", document);
 
                 // Sauvegarder le document dans le repository
                 documentRepository.save(document);

@@ -13,6 +13,7 @@ import com.teleo.manager.generic.exceptions.InternalException;
 import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import com.teleo.manager.generic.logging.LogExecution;
 import com.teleo.manager.generic.service.impl.ServiceGenericImpl;
+import com.teleo.manager.generic.utils.GenericUtils;
 import jakarta.transaction.Transactional;
 import org.springframework.stereotype.Service;
 
@@ -39,6 +40,8 @@ public class AssureServiceImpl extends ServiceGenericImpl<AssureRequest, AssureR
     public AssureResponse save(AssureRequest dto) throws RessourceNotFoundException {
         try {
             Assure assure = mapper.toEntity(dto);
+            // Générer un NUI unique
+            assure.setNumNiu(GenericUtils.generateNumNiu());
             assure = repository.save(assure);
             updateAccount(assure);
             return getOne(assure);
@@ -68,6 +71,8 @@ public class AssureServiceImpl extends ServiceGenericImpl<AssureRequest, AssureR
     @LogExecution
     @Override
     public Assure saveDefault(Assure assure) {
+        // Générer un NUI unique
+        assure.setNumNiu(GenericUtils.generateNumNiu());
         assure = repository.save(assure);
         updateAccount(assure);
         return assure;

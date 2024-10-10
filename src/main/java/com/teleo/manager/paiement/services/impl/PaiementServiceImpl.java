@@ -33,7 +33,6 @@ import com.teleo.manager.prestation.entities.Prestation;
 import com.teleo.manager.prestation.enums.PrestationStatus;
 import com.teleo.manager.prestation.repositories.PrestationRepository;
 import com.teleo.manager.sinistre.entities.Sinistre;
-import com.teleo.manager.sinistre.enums.SinistreStatus;
 import com.teleo.manager.sinistre.repositories.SinistreRepository;
 import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
@@ -153,7 +152,15 @@ public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, Pai
         // Calculer le montant restant à couvrir
         BigDecimal montantRestant = plafondAssureTotal.subtract(montantTotalPaye);
         if (paiement.getMontant().compareTo(montantRestant) > 0) {
-            paiement.setMontant(montantRestant); // Effectuer un paiement partiel
+            // Ajuster le paiement à un montant partiel
+            paiement.setMontant(montantRestant);
+
+            // Notifier l'assuré du paiement partiel
+            notificationService.generateNotification(null,
+                    souscription.getAssure().getAccount(),
+                    "Paiement Partiel pour votre Sinistre",
+                    "Votre police d'assurance n° " + police.getNumeroPolice() + " a pu couvrir un montant partiel de " + montantRestant + " pour votre sinistre, car le plafond assuré a été atteint.",
+                    TypeNotification.PAYMENT);
         }
 
         // Générer les détails du reçu en fonction du type de paiement
@@ -200,7 +207,7 @@ public class PaiementServiceImpl extends ServiceGenericImpl<PaiementRequest, Pai
             case REMBOURSEMENT:
                 if (paiement.getReclamation() != null && paiement.getReclamation().getSinistre() != null) {
                     Sinistre sinistre = paiement.getReclamation().getSinistre();
-                    sinistre.setStatus(SinistreStatus.CLOTURE);
+                    sinistre.setDatePaiement(LocalDate.now());
                     sinistreRepository.save(sinistre);  // Sauvegarder le sinistre mis à jour
                 }
                 break;

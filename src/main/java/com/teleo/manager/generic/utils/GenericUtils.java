@@ -5,6 +5,7 @@ import com.teleo.manager.generic.exceptions.RessourceNotFoundException;
 import jakarta.annotation.PostConstruct;
 import jakarta.mail.internet.AddressException;
 import jakarta.mail.internet.InternetAddress;
+import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
@@ -67,6 +68,20 @@ public class GenericUtils {
         Random random = new Random();
         String number = String.format("%04d", random.nextInt(100000));
         return prefixe+"-"+number;
+    }
+
+    // Générer un numéro NUI au format "NUI-XXXXXXXXX" (9 chiffres)
+    public static String generateNumNiu() {
+        String prefix = "NUI-";
+        String randomDigits = RandomStringUtils.randomNumeric(9); // Génère 9 chiffres aléatoires
+        return prefix + randomDigits;
+    }
+
+    // Générer un numéro CNI au format "CNIXXXXXXX" (7 chiffres)
+    public static String generateNumCni() {
+        String prefix = "CNI";
+        String randomDigits = RandomStringUtils.randomNumeric(7); // Génère 7 chiffres aléatoires
+        return prefix + randomDigits;
     }
 
     public static String getServerAbsoluteUrl() {
