@@ -93,7 +93,7 @@ public class GenericUtils {
         boolean isProd = "prod".equalsIgnoreCase(activeProfile);
         if (isProd) {
             scheme = "https";
-            serverName = "samba-web-api-c9e839abd962.herokuapp.com";
+            serverName = "samba-web-api-v1-dbbfa67e2b93.herokuapp.com";
         }
 
         // Construire l'URL de base avec le schéma et le nom du serveur
